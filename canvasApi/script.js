@@ -1,9 +1,27 @@
+let isResizing = false;
+
 let selectedElement = null;
 
-function drawRect(ctx, x, y) {
+let squareSize = 50;
+
+let startX, startY;
+
+let currentFigure = null;
+
+let figures = [];
+
+function drawAllFigures(canvas) {
+    const ctx = canvas.getContext('2d');
+    figures.forEach(figure => {
+        if (figure.type === "rectangle") {
+            drawRect(ctx, figure.x, figure.y, figure.size);
+        }
+    });
+}
+
+function drawRect(ctx, x, y, size) {
     ctx.strokeStyle = "blue";
-    const squareSize = 50;
-    ctx.strokeRect(x, y, squareSize, squareSize);
+    ctx.strokeRect(x, y, size, size);
 }
 
 function drawEllipse(ctx, x, y) {
@@ -79,9 +97,6 @@ function mouseClick(event, canvas) {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         switch (selectedElement) {
-            case "rectangle":
-                drawRect(canvas.getContext('2d'), x, y);
-                break;
             case "ellipse":
                 drawEllipse(canvas.getContext('2d'), x, y);
                 break;
@@ -99,6 +114,52 @@ function mouseClick(event, canvas) {
                 break;
         }
     }
+}
+
+function handleMouseDown(event) {
+    if (selectedElement === "rectangle") {
+        const rect = canvas.getBoundingClientRect();
+        startX = event.clientX - rect.left;
+        startY = event.clientY - rect.top;
+        isResizing = true;
+    }
+}
+
+function handleMouseMove(event) {
+    if (isResizing) {
+        const rect = canvas.getBoundingClientRect();
+        const currentX = event.clientX - rect.left;
+        squareSize = Math.abs(currentX - startX);
+        clearCanvas(canvas);
+        drawAllFigures(canvas);
+        drawRect(canvas.getContext('2d'), startX, startY, squareSize);
+    }
+}
+
+function handleMouseUp(event) {
+    if (isResizing) {
+        isResizing = false;
+        const rect = canvas.getBoundingClientRect();
+        const endX = event.clientX - rect.left;
+        squareSize = Math.abs(endX - startX); 
+        const newSquare = { type: "rectangle", x: startX, y: startY, size: squareSize };
+        figures.push(newSquare);
+        clearCanvas(canvas);
+        drawAllFigures(canvas);
+    }
+}
+
+function getCursorPosition(event, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const position = document.getElementById("position");
+    position.innerText = `Cursor position: x: ${Math.floor(+x)}, ${Math.floor(+y)}`;
+}
+
+function clearCanvas(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function init() {
@@ -136,6 +197,19 @@ function init() {
             mouseClick(event, canvas);
         });
 
+        canvas.addEventListener('mousedown', function(event) {
+            handleMouseDown(event);
+        });
+        
+        canvas.addEventListener('mousemove', function(event) {
+            handleMouseMove(event);
+            getCursorPosition(event, canvas);
+        });
+        
+        canvas.addEventListener('mouseup', function(event) {
+            handleMouseUp(event);
+        });
+
         for (const key in elements) {
             elements[key].div.onclick = function() {
                 elements[key].isSelected = !elements[key].isSelected;
@@ -147,7 +221,6 @@ function init() {
                 }
                 isSelectedElement(elements[key].div, elements[key].isSelected);
 
-                console.log(elements)
             };
         }
     }
