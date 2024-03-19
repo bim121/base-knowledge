@@ -10,11 +10,30 @@ let currentFigure = null;
 
 let figures = [];
 
+const homeImage = new Image();
+
+homeImage.src = "./image/home.svg";
+
 function drawAllFigures(canvas) {
     const ctx = canvas.getContext('2d');
     figures.forEach(figure => {
         if (figure.type === "rectangle") {
             drawRect(ctx, figure.x, figure.y, figure.size);
+        }
+        if (figure.type === "triangle") {
+            drawTriangle(ctx, figure.startX, figure.startY, figure.endX, figure.endY);
+        }
+        if (figure.type === "line") {
+            drawLine(ctx, figure.startX, figure.startY, figure.endX, figure.endY);
+        }
+        if(figure.type === "ellipse"){
+            drawEllipse(ctx, figure.x, figure.y, figure.radiusX, figure.radiusY);
+        }
+        if(figure.type === "image"){
+            drawImage(ctx, figure.x, figure.y, figure.size);
+        }
+        if(figure.type === "text"){
+            drawText(ctx, figure.x, figure.y, figure.fontSize);
         }
     });
 }
@@ -24,51 +43,42 @@ function drawRect(ctx, x, y, size) {
     ctx.strokeRect(x, y, size, size);
 }
 
-function drawEllipse(ctx, x, y) {
+function drawEllipse(ctx, x, y, radiusX, radiusY) {
     ctx.strokeStyle = "red";
-    const radiusX = 50;
-    const radiusY = 30;
     const startAngle = 0;
-    const endAngle = 0;
+    const endAngle = Math.PI * 2;
     ctx.beginPath();
-    ctx.ellipse(x, y, radiusX, radiusY, startAngle, endAngle, Math.PI * 2);
+    ctx.ellipse(x, y, radiusX, radiusY, startAngle, endAngle, 0);
     ctx.stroke();
     ctx.closePath();
 }
 
-function drawLine(ctx, x, y) {
+function drawLine(ctx, startX, startY, endX, endY) {
     ctx.strokeStyle = "orange";
-    const lineWidth = 80;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + lineWidth, y + lineWidth);
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
     ctx.stroke();
     ctx.closePath();
 }
 
-function drawImage(ctx, x, y) {
-    var img = new Image();
-    const imageSize = 100;
-    img.onload = function() {
-        ctx.drawImage(img, x, y, imageSize, imageSize);
-    }
-    img.src = "./image/home.png";
+function drawImage(ctx, x, y, size) {
+    ctx.drawImage(homeImage, x, y, size, size);
 }
 
-function drawText(ctx, x, y) {
-    ctx.font = "48px serif";
+function drawText(ctx, x, y, fontSize) {
+    ctx.font = fontSize + "px serif";
     const text = "Text";
     ctx.fillText(text, x, y);
 }
 
-function drawTriangle(ctx, x, y) {
+function drawTriangle(ctx, startX, startY, endX, endY) {
     ctx.strokeStyle = "green";
-    const lineWidth = 40;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + lineWidth, y);
-    ctx.lineTo(x + lineWidth, y + lineWidth);
-    ctx.lineTo(x, y);
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.lineTo(startX + (endX - startX) / 2, startY - (endY - startY));
+    ctx.lineTo(startX, startY);
     ctx.stroke();
     ctx.closePath();
 }
@@ -91,33 +101,8 @@ function clearSelectedElements(elements, exceptObj) {
     }
 }
 
-function mouseClick(event, canvas) {
-    if (selectedElement) {
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        switch (selectedElement) {
-            case "ellipse":
-                drawEllipse(canvas.getContext('2d'), x, y);
-                break;
-            case "line":
-                drawLine(canvas.getContext('2d'), x, y);
-                break;
-            case "image":
-                drawImage(canvas.getContext('2d'), x, y);
-                break;
-            case "text":
-                drawText(canvas.getContext('2d'), x, y);
-                break;
-            case "triangle":
-                drawTriangle(canvas.getContext('2d'), x, y);
-                break;
-        }
-    }
-}
-
-function handleMouseDown(event) {
-    if (selectedElement === "rectangle") {
+function handleMouseDown(event, canvas) {
+    if(selectedElement !== null){
         const rect = canvas.getBoundingClientRect();
         startX = event.clientX - rect.left;
         startY = event.clientY - rect.top;
@@ -125,27 +110,83 @@ function handleMouseDown(event) {
     }
 }
 
-function handleMouseMove(event) {
-    if (isResizing) {
+function clearAndDraw(canvas){
+    clearCanvas(canvas);
+    drawAllFigures(canvas);
+}
+
+function handleMouseMove(event, canvas) {
+    if(isResizing && selectedElement !== null){
         const rect = canvas.getBoundingClientRect();
         const currentX = event.clientX - rect.left;
-        squareSize = Math.abs(currentX - startX);
-        clearCanvas(canvas);
-        drawAllFigures(canvas);
-        drawRect(canvas.getContext('2d'), startX, startY, squareSize);
+        const currentY = event.clientY - rect.top;
+
+        if (selectedElement === "rectangle") {
+            squareSize = Math.abs(currentX - startX);
+            clearAndDraw(canvas);
+            drawRect(canvas.getContext('2d'), startX, startY, squareSize);
+        }
+        if (selectedElement === "triangle") {
+            clearAndDraw(canvas);
+            drawTriangle(canvas.getContext('2d'), startX, startY, currentX, currentY);
+        }
+        if (selectedElement === "line") {
+            clearAndDraw(canvas);
+            drawLine(canvas.getContext('2d'), startX, startY, currentX, currentY);
+        }
+        if (selectedElement === "ellipse") {
+            const radiusX = Math.abs(currentX - startX);
+            const radiusY = Math.abs(currentY - startY);
+            clearAndDraw(canvas);
+            drawEllipse(canvas.getContext('2d'), startX, startY, radiusX, radiusY);
+        }
+        if (selectedElement === "image") {
+            const imageSize = Math.abs(currentX - startX);
+            clearAndDraw(canvas);
+            drawImage(canvas.getContext('2d'), startX, startY, imageSize);
+        }
+        if (isResizing && selectedElement === "text") {
+            const fontSize = Math.abs(currentX - startX); 
+            clearAndDraw(canvas);
+            drawText(canvas.getContext('2d'), startX, startY, fontSize);
+        }
     }
 }
 
-function handleMouseUp(event) {
-    if (isResizing) {
+function handleMouseUp(event, canvas) {
+    if(isResizing && selectedElement !== null){
         isResizing = false;
         const rect = canvas.getBoundingClientRect();
         const endX = event.clientX - rect.left;
-        squareSize = Math.abs(endX - startX); 
-        const newSquare = { type: "rectangle", x: startX, y: startY, size: squareSize };
-        figures.push(newSquare);
-        clearCanvas(canvas);
-        drawAllFigures(canvas);
+        const endY = event.clientY - rect.top;
+        let newFigure;
+
+        if (selectedElement === "rectangle") {
+            squareSize = Math.abs(endX - startX); 
+            newFigure = { type: "rectangle", x: startX, y: startY, size: squareSize };
+        }
+        if (selectedElement === "triangle") {
+            newFigure = { type: "triangle", startX: startX, startY: startY, endX: endX, endY: endY };
+        }
+        if (selectedElement === "line") {
+            newFigure = { type: "line", startX: startX, startY: startY, endX: endX, endY: endY };
+        }
+        if (selectedElement === "ellipse") {
+            const radiusX = Math.abs(endX - startX);
+            const radiusY = Math.abs(endY - startY);
+            newFigure = { type: "ellipse", x: startX, y: startY, radiusX: radiusX, radiusY: radiusY };
+        }
+        if (selectedElement === "image") {
+            const imageSize = Math.abs(endX - startX);
+            newFigure = { type: "image", x: startX, y: startY, size: imageSize };
+        }
+        if (selectedElement === "text") {
+            const fontSize = Math.abs(endX - startX);
+            newFigure = { type: "text", x: startX, y: startY, fontSize: fontSize };
+        }
+
+        figures.push(newFigure);
+        clearAndDraw(canvas);
     }
 }
 
@@ -193,21 +234,17 @@ function init() {
     const canvas = document.getElementById("canvas");
 
     if (canvas.getContext) {
-        canvas.addEventListener('click', function(event) {
-            mouseClick(event, canvas);
-        });
-
         canvas.addEventListener('mousedown', function(event) {
-            handleMouseDown(event);
+            handleMouseDown(event, canvas);
         });
         
         canvas.addEventListener('mousemove', function(event) {
-            handleMouseMove(event);
+            handleMouseMove(event, canvas);
             getCursorPosition(event, canvas);
         });
         
         canvas.addEventListener('mouseup', function(event) {
-            handleMouseUp(event);
+            handleMouseUp(event, canvas);
         });
 
         for (const key in elements) {
