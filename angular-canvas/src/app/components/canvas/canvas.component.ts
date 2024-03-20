@@ -3,6 +3,7 @@ import { SelectionService } from '../../shared/services/selection.service';
 import { Figure } from '../../classes/abstract/Figure';
 import { Rectangle } from '../../classes/rectangle';
 import { FigureService } from '../../shared/services/figure.service';
+import { CoordinateService } from '../../shared/services/coordinate.service';
 
 @Component({
   selector: 'app-canvas',
@@ -20,7 +21,8 @@ export class CanvasComponent {
 
   constructor(
     private _selectionService: SelectionService,
-    private _figureService: FigureService
+    private _figureService: FigureService,
+    private _coordinateService: CoordinateService,
   ) { }
 
   ngAfterViewInit(): void {
@@ -52,11 +54,13 @@ export class CanvasComponent {
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    if(this.isResizing && this.selectedFigure !== null){
-        const rect = this.canvas.getBoundingClientRect();
-        const currentX = event.clientX - rect.left;
-        const currentY = event.clientY - rect.top;
+    const rect = this.canvas.getBoundingClientRect();
+    const currentX = event.clientX - rect.left;
+    const currentY = event.clientY - rect.top;
 
+    this._coordinateService.updateCoordinates({ x: Math.floor(currentX), y: Math.floor(currentY) });
+
+    if(this.isResizing && this.selectedFigure !== null){
         if (this.selectedFigure === "rectangle") {
             const squareSize = Math.abs(currentX - this.startX);
             this._figureService.clearAndDraw(this.canvas, this.ctx);
