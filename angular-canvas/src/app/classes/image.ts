@@ -4,8 +4,8 @@ export class ImageFigure extends Figure {
     size: number;
     image: HTMLImageElement;
   
-    constructor(x: number, y: number, size: number, image: HTMLImageElement) {
-      super(x, y);
+    constructor(x: number, y: number, size: number, image: HTMLImageElement, backgroundColor: string, borderColor: string) {
+      super(x, y, backgroundColor, borderColor);
       this.size = size;
       this.image = image;
     }
