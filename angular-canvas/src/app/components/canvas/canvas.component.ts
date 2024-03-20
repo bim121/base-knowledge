@@ -4,6 +4,8 @@ import { Figure } from '../../classes/abstract/Figure';
 import { Rectangle } from '../../classes/rectangle';
 import { FigureService } from '../../shared/services/figure.service';
 import { CoordinateService } from '../../shared/services/coordinate.service';
+import { Options } from '../../shared/interface/option.interface';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-canvas',
@@ -19,6 +21,17 @@ export class CanvasComponent {
   public isResizing = false;
   public startX = 0;
   public startY = 0;
+  public options: Options = {
+    width: 100,
+    height: 100,
+    backgroundColor: "black",
+    borderColor: "black",
+    src: "",
+    text: "text",
+    textColor: "black",
+    rotation: 0,
+  };
+  private isDragging: boolean = false;
 
   constructor(
     private _selectionService: SelectionService,
@@ -39,7 +52,9 @@ export class CanvasComponent {
   ngOnInit(): void {
     this._selectionService.selectedFigure$.subscribe(figure => {
       this.selectedFigure = figure;
-      console.log(this.selectedFigure);
+    });
+    this._figureService.options$.subscribe(options => {
+      this.options = options;
     });
   }
 
@@ -54,6 +69,7 @@ export class CanvasComponent {
         const rect = this.canvas.getBoundingClientRect();
         this.startX = event.clientX - rect.left;
         this.startY = event.clientY - rect.top;
+        this.isDragging = false;
         this.isResizing = true;
     }
   }
@@ -88,7 +104,7 @@ export class CanvasComponent {
         if(this.selectedFigure === "text") {
           const fontSize = Math.abs(currentX - this.startX); 
           this._figureService.clearAndDraw(this.canvas, this.ctx);
-          this._figureService.drawText(this.startX, this.startY,"text", fontSize, this.ctx);
+          this._figureService.drawText(this.startX, this.startY, this.options.text, fontSize, this.ctx);
         }
         if (this.selectedFigure === "image") {
           const imageSize = Math.abs(currentX - this.startX);
@@ -99,30 +115,36 @@ export class CanvasComponent {
   }
 
   private handleMouseUp(event: MouseEvent) {
-    if(this.isResizing && HTMLSelectElement !== null){
+    if(this.isResizing && this.selectedFigure){
         this.isResizing = false;
         const rect = this.canvas.getBoundingClientRect();
         const endX = event.clientX - rect.left;
         const endY = event.clientY - rect.top;
 
+        if (endX !== this.startX || endY !== this.startY) {
+          this.isDragging = true;
+        }
+
         if (this.selectedFigure === "rectangle") {
-          const squareSize = Math.abs(endX - this.startX); 
+          const squareSize = this.isDragging ? Math.abs(endX - this.startX) : this.options.width;
           this._figureService.addRectangle(this.startX, this.startY, squareSize);
         }
         if (this.selectedFigure === "triangle") {
-          this._figureService.addTriangle(this.startX, this.startY, endX, endY);
+          const width = this.isDragging ? endX : this.options.width;
+          const height = this.isDragging ? endY : this.options.height;
+          this._figureService.addTriangle(this.startX, this.startY, width, height);
         }
         if (this.selectedFigure === "horizontal") {
           this._figureService.addLine(this.startX, this.startY, endX, endY);
         }
         if (this.selectedFigure === "ellipse") {
-          const radiusX = Math.abs(endX - this.startX);
-          const radiusY = Math.abs(endY - this.startY);
+          const radiusX = this.isDragging ? Math.abs(endX - this.startX) : Math.abs(this.options.width);
+          const radiusY = this.isDragging ? Math.abs(endY - this.startY) : Math.abs(this.options.height);
           this._figureService.addEllipse(this.startX, this.startY, radiusX, radiusY);
         }
         if (this.selectedFigure === "text") {
           const fontSize = Math.abs(endX - this.startX);
-          this._figureService.addText(this.startX, this.startY, "text", fontSize);
+          this._figureService.addText(this.startX, this.startY, this.options.text, fontSize);
         }
         if (this.selectedFigure === "image") {
           const imageSize = Math.abs(endX - this.startX);
