@@ -7,7 +7,7 @@ import { authorizedGuard } from './guards/authorized.guard';
 const routes: Routes = [
   {
     path:'',
-    redirectTo : 'login',
+    redirectTo : 'dashboard',
     pathMatch:'full'
   },
   {
