@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { SelectionService } from '../../shared/services/selection.service';
 import { Figure } from '../../classes/abstract/Figure';
 import { Rectangle } from '../../classes/rectangle';
+import { FigureService } from '../../shared/services/figure.service';
 
 @Component({
   selector: 'app-canvas',
@@ -13,12 +14,14 @@ export class CanvasComponent {
   @ViewChild('canvas') public canvasRef!: ElementRef<HTMLCanvasElement>;
   public canvas!: HTMLCanvasElement;
   public ctx!: CanvasRenderingContext2D;
-  public figures: Figure[] = [];
   public isResizing = false;
   public startX = 0;
   public startY = 0;
 
-  constructor(private _selectionService: SelectionService) { }
+  constructor(
+    private _selectionService: SelectionService,
+    private _figureService: FigureService
+  ) { }
 
   ngAfterViewInit(): void {
     this.canvas = this.canvasRef.nativeElement;
@@ -48,11 +51,6 @@ export class CanvasComponent {
     }
   }
 
-  private clearAndDraw(canvas: HTMLCanvasElement){
-   this.clearCanvas(canvas);
-   this.drawAllFigures(canvas);
-  }
-
   private handleMouseMove(event: MouseEvent): void {
     if(this.isResizing && this.selectedFigure !== null){
         const rect = this.canvas.getBoundingClientRect();
@@ -61,9 +59,8 @@ export class CanvasComponent {
 
         if (this.selectedFigure === "rectangle") {
             const squareSize = Math.abs(currentX - this.startX);
-            this.clearAndDraw(this.canvas);
-            const rectangle = new Rectangle(this.startX, this.startY, squareSize);
-            rectangle.draw(this.ctx);
+            this._figureService.clearAndDraw(this.canvas, this.ctx);
+            this._figureService.drawRectangle(this.startX, this.startY, squareSize, this.ctx);
         }
     }
   }
@@ -74,25 +71,12 @@ export class CanvasComponent {
         const rect = this.canvas.getBoundingClientRect();
         const endX = event.clientX - rect.left;
         const endY = event.clientY - rect.top;
-        let newFigure: Figure;
 
         if (this.selectedFigure=== "rectangle") {
             const squareSize = Math.abs(endX - this.startX); 
-            newFigure = new Rectangle(this.startX, this.startY, squareSize);
-            this.figures.push(newFigure);
+            this._figureService.addRectangle(this.startX, this.startY, squareSize);
         }
-
-        this.clearAndDraw(this.canvas);
+        this._figureService.clearAndDraw(this.canvas, this.ctx);
     }
-  }
-
-  private drawAllFigures(canvas: HTMLCanvasElement) {
-    this.figures.forEach(figure => {
-            figure.draw(this.ctx);
-    })
-  }
-
-  private clearCanvas(canvas: HTMLCanvasElement) {
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 }
