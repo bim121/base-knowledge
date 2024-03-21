@@ -19,10 +19,6 @@
           <label>Height:</label>
           <input type="number" [(ngModel)]="height" (change)="onPropertiesChanged()">
         </div>
-        <div *ngIf="selectedFigure === 'ellipse' " class="inputs">
-            <label>Rotation:</label>
-            <input type="number" [(ngModel)]="rotation" (change)="onPropertiesChanged()">
-        </div>
         <div *ngIf="selectedFigure === 'text' " class="inputs">
             <label>Text</label>
             <input type="text" [(ngModel)]="text" (change)="onPropertiesChanged()">
@@ -33,7 +29,7 @@
         </div>
         <div *ngIf="selectedFigure === 'image' " class="inputs">
             <label>Src:</label>
-            <input type="text" [(ngModel)]="src" (change)="onPropertiesChanged()">
+            <input type="file" [(ngModel)]="file" (change)="onFileSelected($event)">
         </div>
     </div>
 </div>
