@@ -3,8 +3,7 @@ export interface Options {
     borderColor: string;
     width: number;
     height: number;
-    src: string;
-    rotation: number;
+    file: File | null;
     text: string;
     textColor: string;
 }
