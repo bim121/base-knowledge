@@ -15,10 +15,9 @@ export class OptionsComponent {
   public borderColor: string = '';
   public width: number = 100;
   public height: number = 100;
-  public src: string = "";
+  public file: File | null = null;
   public text: string = "text";
   public textColor: string = "black";
-  public rotation: number = 0;
 
   constructor(
     private _selectionService: SelectionService,
@@ -31,16 +30,22 @@ export class OptionsComponent {
     });
   }
 
-  onPropertiesChanged() {
+  public onFileSelected(event: any) {
+    this.file = event.target.files[0];
+    if (this.file) {
+      this.onPropertiesChanged();
+    }
+  }
+
+  public onPropertiesChanged() {
     const properties: Options = {
       backgroundColor: this.backgroundColor,
       borderColor: this.borderColor,
       width: this.width,
       height: this.height,
-      src: this.src,
+      file: this.file,
       text: this.text,
       textColor: this.textColor,
-      rotation: this.rotation,
     };
     this._figureService.updateOptions(properties);
   }
