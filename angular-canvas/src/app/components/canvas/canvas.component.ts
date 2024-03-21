@@ -1,11 +1,9 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { SelectionService } from '../../shared/services/selection.service';
-import { Figure } from '../../classes/abstract/Figure';
-import { Rectangle } from '../../classes/rectangle';
 import { FigureService } from '../../shared/services/figure.service';
 import { CoordinateService } from '../../shared/services/coordinate.service';
 import { Options } from '../../shared/interface/option.interface';
-import { Subscription } from 'rxjs';
+
 
 @Component({
   selector: 'app-canvas',
@@ -26,12 +24,13 @@ export class CanvasComponent {
     height: 100,
     backgroundColor: "black",
     borderColor: "black",
-    src: "",
+    file: null,
     text: "text",
     textColor: "black",
-    rotation: 0,
   };
   private isDragging: boolean = false;
+
+  public selectedElementIndex: number | null = null;
 
   constructor(
     private _selectionService: SelectionService,
@@ -42,30 +41,99 @@ export class CanvasComponent {
   ngAfterViewInit(): void {
     this.canvas = this.canvasRef.nativeElement;
     this.ctx = this.canvas.getContext('2d')!;
+    this.initCanvas();
     this.image.src = "../../../assets/image/home.svg";
     this.image.onload = () => {
-        this._figureService.clearAndDraw(this.canvas, this.ctx);
+      this._figureService.clearAndDraw(this.canvas, this.ctx);
     };
-    this.initCanvas();
   }
 
   ngOnInit(): void {
+    this.subscribeToSelectedFigureChanges();
+    this.subscribeToFigureServiceOptions();
+  }
+  
+  private subscribeToSelectedFigureChanges(): void {
     this._selectionService.selectedFigure$.subscribe(figure => {
       this.selectedFigure = figure;
     });
+  }
+  
+  private subscribeToFigureServiceOptions(): void {
     this._figureService.options$.subscribe(options => {
       this.options = options;
+  
+      if (this.options.file !== null) {
+        this.loadImageFromFile(this.options.file);
+      }
     });
+  }
+  
+  private loadImageFromFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        this.createImage(event.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  private createImage(src: string): void {
+    const newImage = new Image(); 
+    newImage.onload = () => {
+      this._figureService.clearAndDraw(this.canvas, this.ctx);
+    };
+    newImage.src = src;
+    this.image = newImage; 
   }
 
   private initCanvas(): void {
     this.canvas.addEventListener('mousedown', (event) => this.handleMouseDown(event));
     this.canvas.addEventListener('mousemove', (event) => this.handleMouseMove(event));
     this.canvas.addEventListener('mouseup', (event) => this.handleMouseUp(event));
+    this.canvas.addEventListener('click', (event) => this.handleCanvasClick(event));
+  }
+
+  private handleCanvasClick(event: MouseEvent): void {
+    if (this.selectedFigure === 'hand') {
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      for (let i = this._figureService.figures.length - 1; i >= 0; i--) {
+        if (this._figureService.figures[i].isPointInside(mouseX, mouseY)) {
+          this.selectedElementIndex = i; 
+          break;
+        }
+      }
+
+      if(this.selectedElementIndex !== null){
+        this._figureService.clearAndDraw(this.canvas, this.ctx);
+        this.drawSelectedBorder();
+      }
+
+    }
+  }
+
+  private drawSelectedBorder(): void {
+    if (this.selectedElementIndex !== null && this.selectedElementIndex >= 0) {
+      const selectedFigure = this._figureService.figures[this.selectedElementIndex];
+      this.ctx.save();
+      this.ctx.strokeStyle = 'blue';
+      this.ctx.lineWidth = 4;
+      this.ctx.setLineDash([5, 3]); 
+
+      selectedFigure.drawBorder(this.ctx);
+
+      this.ctx.setLineDash([]);
+      this.ctx.restore();
+    }
   }
 
   private handleMouseDown(event: MouseEvent): void {
-    if(this.selectedFigure !== null){
+    if(this.selectedFigure !== null && this.selectedFigure !== 'hand'){
+        this.selectedElementIndex = null; 
         const rect = this.canvas.getBoundingClientRect();
         this.startX = event.clientX - rect.left;
         this.startY = event.clientY - rect.top;
